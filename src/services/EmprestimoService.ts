@@ -15,17 +15,26 @@ export class EmprestimoService {
     }
 
     const livro = await this.servicoLivro.buscarPorId(dados.livroId);
-    if (livro.quantidadeDisponivel <= 0) throw new Error("Livro indisponível para empréstimo");
+    if (livro.quantidadeDisponivel <= 0) {
+      throw new Error("Livro indisponível para empréstimo");
+    }
 
     await this.servicoCliente.buscarPorId(dados.clienteId);
 
-    const emprestimo = await this.repositorio.criar({ ...dados, devolvido: false });
+    const emprestimo = await this.repositorio.criar({
+      ...dados,
+      devolvido: false,
+      dataEmprestimo: dados.dataEmprestimo || new Date()
+    });
+
     await this.servicoLivro.alterarEstoque(dados.livroId, -1);
     return emprestimo;
   }
 
   async registrarDevolucao(idEmprestimo: number): Promise<{ mensagem: string }> {
-    if (isNaN(idEmprestimo) || idEmprestimo <= 0) throw new Error("ID inválido");
+    if (isNaN(idEmprestimo) || idEmprestimo <= 0) {
+      throw new Error("ID do empréstimo inválido");
+    }
 
     const emprestimo = await this.repositorio.buscarPorId(idEmprestimo);
     if (!emprestimo) throw new Error("Empréstimo não encontrado");
@@ -34,20 +43,33 @@ export class EmprestimoService {
     await this.repositorio.registrarDevolucao(idEmprestimo, new Date());
     await this.servicoLivro.alterarEstoque(emprestimo.livroId, +1);
 
-    return { mensagem: "Devolução registrada com sucesso, estoque atualizado" };
+    return { mensagem: "Devolução registrada com sucesso! Estoque atualizado." };
   }
 
   async listarEmprestimos(): Promise<Emprestimo[]> {
     const lista = await this.repositorio.listarTodos();
-    if (lista.length === 0) throw new Error("Nenhum empréstimo registrado");
+    if (lista.length === 0) throw new Error("Nenhum empréstimo cadastrado");
     return lista;
   }
 
+  // Métodos para relatórios
   async livrosDisponiveis() {
     return this.repositorio.livrosDisponiveis();
   }
 
+  async livrosEmprestados() {
+    return this.repositorio.livrosEmprestados();
+  }
+
   async livrosPorAutor() {
     return this.repositorio.livrosPorAutor();
+  }
+
+  async qtdEmprestimosPorLivro() {
+    return this.repositorio.qtdEmprestimosPorLivro();
+  }
+
+  async clientesComEmprestimosAtivos() {
+    return this.repositorio.clientesComEmprestimosAtivos();
   }
 }

@@ -10,7 +10,12 @@ export class EmprestimoRepository {
       VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
-    const valores = [emprestimo.livroId, emprestimo.clienteId, emprestimo.dataEmprestimo, emprestimo.devolvido];
+    const valores = [
+      emprestimo.livroId,
+      emprestimo.clienteId,
+      emprestimo.dataEmprestimo || new Date(),
+      emprestimo.devolvido
+    ];
 
     try {
       const resultado = await pool?.query(query, valores);
@@ -60,10 +65,14 @@ export class EmprestimoRepository {
     }
   }
 
-  // Consultas relacionais para relatórios → cumpre RF17 e RF18
+  // ------------------------------
+  // Métodos de Relatórios (RF18)
+  // ------------------------------
+
+  // 1. Livros disponíveis para empréstimo
   async livrosDisponiveis(): Promise<any[]> {
     const query = `
-      SELECT id, titulo, quantidade_disponivel
+      SELECT id, titulo, ano_publicacao, quantidade_disponivel
       FROM livros
       WHERE quantidade_disponivel > 0
       ORDER BY titulo;
@@ -76,9 +85,36 @@ export class EmprestimoRepository {
     }
   }
 
+  // 2. Livros que estão emprestados no momento
+  async livrosEmprestados(): Promise<any[]> {
+    const query = `
+      SELECT
+        l.id AS livro_id,
+        l.titulo AS livro_titulo,
+        c.nome AS cliente_nome,
+        c.email AS cliente_email,
+        e.data_emprestimo
+      FROM emprestimos e
+      INNER JOIN livros l ON e.livro_id = l.id
+      INNER JOIN clientes c ON e.cliente_id = c.id
+      WHERE e.devolvido = false
+      ORDER BY e.data_emprestimo DESC;
+    `;
+    try {
+      const resultado = await pool?.query(query);
+      return resultado.rows;
+    } catch (erro) {
+      throw new Error(`Erro ao consultar livros emprestados: ${(erro as Error).message}`);
+    }
+  }
+
+  // 3. Quantidade de livros cadastrados por autor
   async livrosPorAutor(): Promise<any[]> {
     const query = `
-      SELECT a.nome AS autor, COUNT(l.id) AS total_livros
+      SELECT
+        a.id AS autor_id,
+        a.nome AS autor_nome,
+        COUNT(l.id) AS total_livros
       FROM autores a
       LEFT JOIN livros l ON a.id = l.autor_id
       GROUP BY a.id, a.nome
@@ -89,6 +125,47 @@ export class EmprestimoRepository {
       return resultado.rows;
     } catch (erro) {
       throw new Error(`Erro ao consultar livros por autor: ${(erro as Error).message}`);
+    }
+  }
+
+  // 4. Quantidade total de empréstimos por livro
+  async qtdEmprestimosPorLivro(): Promise<any[]> {
+    const query = `
+      SELECT
+        l.id AS livro_id,
+        l.titulo AS livro_titulo,
+        COUNT(e.id) AS total_emprestimos
+      FROM livros l
+      LEFT JOIN emprestimos e ON l.id = e.livro_id
+      GROUP BY l.id, l.titulo
+      ORDER BY total_emprestimos DESC;
+    `;
+    try {
+      const resultado = await pool?.query(query);
+      return resultado.rows;
+    } catch (erro) {
+      throw new Error(`Erro ao consultar quantidade de empréstimos por livro: ${(erro as Error).message}`);
+    }
+  }
+
+  // 5. Clientes com empréstimos ainda não devolvidos
+  async clientesComEmprestimosAtivos(): Promise<any[]> {
+    const query = `
+      SELECT DISTINCT
+        c.id AS cliente_id,
+        c.nome AS cliente_nome,
+        c.email AS cliente_email,
+        c.telefone AS cliente_telefone
+      FROM clientes c
+      INNER JOIN emprestimos e ON c.id = e.cliente_id
+      WHERE e.devolvido = false
+      ORDER BY c.nome;
+    `;
+    try {
+      const resultado = await pool?.query(query);
+      return resultado.rows;
+    } catch (erro) {
+      throw new Error(`Erro ao consultar clientes com empréstimos ativos: ${(erro as Error).message}`);
     }
   }
 }

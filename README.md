@@ -1,40 +1,74 @@
-# 📚 Bookstore Manager CLI
+# 📚 BookStore Manager CLI
 
-Sistema de gerenciamento de livraria desenvolvido em **TypeScript**, com arquitetura em camadas, para disciplina de Programação.
+**Projeto Final - Módulo 01**
+Desenvolvido para a disciplina de Desenvolvedor Back End Node
 
 ---
 
-## 🎯 Funcionalidades
-✅ Cadastro, listagem, busca, atualização e exclusão de:
-- Autores
-- Livros
-- Clientes
-- Empréstimos e devoluções
+## 🎯 Objetivo
+Sistema de gerenciamento de livraria executado via terminal, com cadastro e controle de autores, livros, clientes e empréstimos, utilizando **Node.js**, **TypeScript** e **PostgreSQL**.
 
-✅ Relatórios:
-- Livros disponíveis
-- Quantidade de livros por autor
+---
 
-✅ Regras de negócio implementadas:
-- Validação de campos obrigatórios
-- Controle de estoque de livros
-- Verificação de existência de registros antes de operações
-- Prevenção de exclusão de autores com livros cadastrados
+## ✅ Funcionalidades Implementadas
+Conforme requisitos RF01 a RF22:
+
+### 📂 Cadastros e Gestão
+- **Autores**: Cadastrar, listar, consultar por ID, atualizar e excluir
+- **Livros**: Cadastrar vinculado a autor, listar, consultar, atualizar e excluir
+- **Clientes**: Cadastrar, listar, consultar, atualizar e excluir
+- **Empréstimos**: Realizar empréstimo, registrar devolução, listar todos os empréstimos
+
+### 📊 Relatórios
+- Livros disponíveis para empréstimo
+- Livros atualmente emprestados
+- Quantidade de livros cadastrados por autor
+- Quantidade total de empréstimos por livro
+- Clientes com empréstimos pendentes
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
-- **Node.js**
-- **TypeScript**
-- **PostgreSQL**
-- **Dotenv** (variáveis de ambiente)
-- **Readline-sync** (interface no terminal)
+- Node.js
+- TypeScript
+- PostgreSQL
+- `pg` (biblioteca para conexão com o banco)
+- `dotenv` (variáveis de ambiente)
+- `readline-sync` (interface de entrada no terminal)
 
 ---
 
-## 🚀 Como Executar
+## 📁 Estrutura do Projeto
+bookstore-manager-cli/
+├── src/
+│ ├── main.ts # Ponto de entrada da aplicação
+│ ├── config/
+│ │ └── database.ts # Configuração e conexão com PostgreSQL
+│ ├── database/
+│ │ └── schema.sql # Script de criação das tabelas
+│ ├── interfaces/ # Definição de tipos e contratos
+│ ├── models/ # Classes das entidades
+│ ├── repositories/ # Operações de acesso ao banco de dados
+│ ├── services/ # Regras de negócio e validações
+│ ├── controllers/ # Intermediação entre menus e serviços
+│ ├── menus/ # Interface de navegação no terminal
+│ └── utils/ # Funções auxiliares
+├── .env # Variáveis de ambiente
+├── .gitignore
+├── package.json
+├── tsconfig.json
+└── README.md
 
-### 1. Clonar o repositório
+
+---
+
+## ⚙️ Como Executar
+
+### 1. Pré-requisitos
+- Node.js ≥ 18
+- PostgreSQL ≥ 14
+
+### 2. Clonar o repositório
 ```bash
 git clone https://github.com/Picci1522/bookstore-manager-cli.git
 cd bookstore-manager-cli
