@@ -1,10 +1,16 @@
-import { showMainMenu } from './menus/main.menu';
+import dotenv from 'dotenv';
+import './config/database';
+import { exibirMenuPrincipal } from './menus/MenuPrincipal';
 
-const main = async () => {
-    console.log("🚀 BookStore Manager CLI inicializado com sucesso!\n");
-    
-    // Chama o menu principal para a tela
-    await showMainMenu();
-};
+dotenv.config();
 
-main();
+async function iniciarSistema() {
+  try {
+    await exibirMenuPrincipal();
+  } catch (erro) {
+    console.log("❌ Erro inesperado:", (erro as Error).message);
+    process.exit(1);
+  }
+}
+
+iniciarSistema();
