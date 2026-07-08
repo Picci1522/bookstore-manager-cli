@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import dotenv from 'dotenv';
 import './config/database';
 import { exibirMenuPrincipal } from './menus/MenuPrincipal';
@@ -14,3 +15,10 @@ async function iniciarSistema() {
 }
 
 iniciarSistema();
+=======
+async function bootstrap() {
+    console.log("🚀 BookStore Manager CLI inicializado com sucesso!");
+}
+
+bootstrap();
+>>>>>>> f0fa785b23cb81ae95d50578267f110d6a552551
