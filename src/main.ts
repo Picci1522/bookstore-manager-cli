@@ -1,7 +1,16 @@
 import dotenv from 'dotenv';
 import './config/database';
+import { exibirMenuPrincipal } from './menus/MenuPrincipal';
 
 dotenv.config();
 
-console.log("📚 BookStore Manager CLI");
-console.log("✅ Sistema iniciado!");
+async function iniciarSistema() {
+  try {
+    await exibirMenuPrincipal();
+  } catch (erro) {
+    console.log("❌ Erro inesperado:", (erro as Error).message);
+    process.exit(1);
+  }
+}
+
+iniciarSistema();

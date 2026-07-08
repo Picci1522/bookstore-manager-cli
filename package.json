@@ -25,7 +25,8 @@
     "@prisma/client": "^6.19.3",
     "dotenv": "^17.4.2",
     "inquirer": "^14.0.2",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "readline-sync": "^1.4.10"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.10",
