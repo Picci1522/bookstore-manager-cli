@@ -1,0 +1,17 @@
+// Isso diz ao Prisma para gerar o cliente em JavaScript/TypeScript
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Isso configura o nosso banco de dados para ser o SQLite
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Aqui é a nossa tabela de Autores!
+model Autor {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  nacionalidade String
+}
