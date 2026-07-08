@@ -1,15 +1,14 @@
 node_modules/
 dist/
-<<<<<<< HEAD
+build/
 .env
-<<<<<<< HEAD
-/src/generated/prisma
-=======
-.env
->>>>>>> f0fa785b23cb81ae95d50578267f110d6a552551
-=======
-=======
-.env
-/src/generated/prisma
->>>>>>> bd1a9d9 (Primeiro commit)
->>>>>>> feat/relatorios
+.env.*
+!.env.example
+*.db
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
+prisma/migrations/
+prisma/dev.db
