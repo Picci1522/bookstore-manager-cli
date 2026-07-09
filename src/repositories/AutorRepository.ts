@@ -3,8 +3,6 @@ import { Autor } from '../models/Autor';
 import type { IAutor } from '../interfaces/IAutor';
 
 export class AutorRepository {
-
-  // Cadastrar novo autor
   async criar(autor: IAutor): Promise<Autor> {
     const query = `
       INSERT INTO autores (nome, nacionalidade, data_nascimento)
@@ -21,7 +19,6 @@ export class AutorRepository {
     }
   }
 
-  // Listar todos os autores
   async listarTodos(): Promise<Autor[]> {
     const query = `SELECT * FROM autores ORDER BY nome;`;
 
@@ -33,7 +30,6 @@ export class AutorRepository {
     }
   }
 
-  // Buscar autor por ID
   async buscarPorId(id: number): Promise<Autor | null> {
     const query = `SELECT * FROM autores WHERE id = $1;`;
 
@@ -46,10 +42,9 @@ export class AutorRepository {
     }
   }
 
-  // Atualizar dados do autor
   async atualizar(id: number, dados: Partial<IAutor>): Promise<Autor | null> {
-    const campos = [];
-    const valores = [];
+    const campos: string[] = [];
+    const valores: unknown[] = [];
     let indice = 1;
 
     if (dados.nome) { campos.push(`nome = $${indice++}`); valores.push(dados.nome); }
@@ -75,7 +70,6 @@ export class AutorRepository {
     }
   }
 
-  // Excluir autor
   async excluir(id: number): Promise<boolean> {
     const query = `DELETE FROM autores WHERE id = $1;`;
 
