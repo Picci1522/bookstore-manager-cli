@@ -2,18 +2,20 @@ import type { IEmprestimo } from '../interfaces/IEmprestimo';
 
 export class Emprestimo implements IEmprestimo {
   id?: number;
-  livroId: number;
   clienteId: number;
+  livroId: number;
   dataEmprestimo?: Date | string;
   dataDevolucao?: Date | string | null;
-  devolvido: boolean;
+  nomeCliente?: string;
+  tituloLivro?: string;
 
   constructor(dados: IEmprestimo) {
     this.id = dados.id;
-    this.livroId = dados.livroId;
     this.clienteId = dados.clienteId;
-    this.dataEmprestimo = dados.dataEmprestimo || new Date();
+    this.livroId = dados.livroId;
+    this.dataEmprestimo = dados.dataEmprestimo;
     this.dataDevolucao = dados.dataDevolucao;
-    this.devolvido = dados.devolvido;
+    this.nomeCliente = dados.nomeCliente;
+    this.tituloLivro = dados.tituloLivro;
   }
 }

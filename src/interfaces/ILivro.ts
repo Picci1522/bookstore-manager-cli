@@ -1,7 +1,9 @@
 export interface ILivro {
-    id?: number;
-    titulo: string;
-    anoPublicacao?: number;
-    quantidadeDisponivel: number;
-    autorId: number;
-  }
+  id?: number;
+  titulo: string;
+  genero: string;
+  anoPublicacao?: number;
+  quantidadeEstoque: number;
+  autorId: number;
+  nomeAutor?: string;
+}
