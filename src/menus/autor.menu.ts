@@ -1,50 +1,22 @@
-import inquirer from 'inquirer';
+import * as rl from 'readline-sync';
+import { AutorController } from '../controllers/AutorController';
 
-export const showAutorMenu = async (): Promise<void> => {
-    const answers = await inquirer.prompt([
-        {
-            type: 'select',
-            name: 'opcao',
-            message: '--- Gerenciar Autores ---',
-            choices: [
-                'Listar Autores',
-                'Cadastrar Autor',
-                'Voltar ao Menu Principal'
-            ]
-        }
-    ]);
+const ctrl = new AutorController();
 
-    switch (answers.opcao) {
-        case 'Listar Autores':
-            console.log('\n📚 [Aqui vamos listar os autores do banco de dados em breve...]\n');
-            await showAutorMenu(); 
-            break;
-        case 'Cadastrar Autor':
-            console.log('\n📝 Preencha os dados do novo autor:');
-            
-            // Coletando os dados digitados pelo usuário
-            const autorData = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'nome',
-                    message: 'Qual o nome do autor?'
-                },
-                {
-                    type: 'input',
-                    name: 'nacionalidade',
-                    message: 'Qual a nacionalidade do autor?'
-                }
-            ]);
-
-            // Mostrando os dados na tela para confirmar que capturamos certo
-            console.log('\n✅ Dados capturados com sucesso (ainda não salvos no banco):');
-            console.log(`Nome: ${autorData.nome}`);
-            console.log(`Nacionalidade: ${autorData.nacionalidade}\n`);
-            
-            await showAutorMenu(); 
-            break;
-        case 'Voltar ao Menu Principal':
-            console.log('\nVoltando...');
-            break;
+export async function exibirMenuAutores() {
+  let op = '';
+  do {
+    console.log('\n--- AUTORES ---');
+    console.log('1 Cadastrar | 2 Listar | 3 Buscar | 4 Atualizar | 5 Excluir | 0 Voltar');
+    op = rl.question('Opcao: ');
+    switch (op) {
+      case '1': await ctrl.cadastrar(); break;
+      case '2': await ctrl.listarTodos(); break;
+      case '3': await ctrl.buscarPorId(); break;
+      case '4': await ctrl.atualizar(); break;
+      case '5': await ctrl.excluir(); break;
+      case '0': break;
+      default: console.log('Invalido');
     }
-};
+  } while (op !== '0');
+}

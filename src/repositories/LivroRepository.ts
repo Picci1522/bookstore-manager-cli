@@ -3,101 +3,39 @@ import { Livro } from '../models/Livro';
 import type { ILivro } from '../interfaces/ILivro';
 
 export class LivroRepository {
-
-  async criar(livro: ILivro): Promise<Livro> {
-    const query = `
-      INSERT INTO livros (titulo, ano_publicacao, quantidade_disponivel, autor_id)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const valores = [livro.titulo, livro.anoPublicacao, livro.quantidadeDisponivel, livro.autorId];
-
-    try {
-      const resultado = await pool?.query(query, valores);
-      return new Livro(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao cadastrar livro: ${(erro as Error).message}`);
-    }
+  async criar(d: ILivro): Promise<Livro> {
+    const q = `INSERT INTO livros (titulo,genero,ano_publicacao,quantidade_estoque,autor_id) VALUES ($1,$2,$3,$4,$5) RETURNING id,titulo,genero,ano_publicacao AS "anoPublicacao",quantidade_estoque AS "quantidadeEstoque",autor_id AS "autorId";`;
+    const v = [d.titulo, d.genero, d.anoPublicacao ?? null, d.quantidadeEstoque, d.autorId];
+    const r = await pool.query(q, v);
+    return new Livro(r.rows[0]);
   }
 
   async listarTodos(): Promise<Livro[]> {
-    const query = `SELECT * FROM livros ORDER BY titulo;`;
-
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows.map((dado) => new Livro(dado));
-    } catch (erro) {
-      throw new Error(`Erro ao listar livros: ${(erro as Error).message}`);
-    }
+    const q = `SELECT l.id,l.titulo,l.genero,l.ano_publicacao AS "anoPublicacao",l.quantidade_estoque AS "quantidadeEstoque",l.autor_id AS "autorId",a.nome AS "nomeAutor" FROM livros l JOIN autores a ON a.id=l.autor_id ORDER BY l.id;`;
+    const r = await pool.query(q);
+    return r.rows.map(x => new Livro(x));
   }
 
   async buscarPorId(id: number): Promise<Livro | null> {
-    const query = `SELECT * FROM livros WHERE id = $1;`;
-
-    try {
-      const resultado = await pool?.query(query, [id]);
-      if (resultado.rows.length === 0) return null;
-      return new Livro(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao buscar livro: ${(erro as Error).message}`);
-    }
+    const r = await pool.query(`SELECT * FROM livros WHERE id=$1`, [id]);
+    return r.rows[0] ? new Livro(r.rows[0]) : null;
   }
 
-  async atualizar(id: number, dados: Partial<ILivro>): Promise<Livro | null> {
-    const campos = [];
-    const valores = [];
-    let indice = 1;
-
-    if (dados.titulo) { campos.push(`titulo = $${indice++}`); valores.push(dados.titulo); }
-    if (dados.anoPublicacao) { campos.push(`ano_publicacao = $${indice++}`); valores.push(dados.anoPublicacao); }
-    if (dados.quantidadeDisponivel !== undefined) { campos.push(`quantidade_disponivel = $${indice++}`); valores.push(dados.quantidadeDisponivel); }
-    if (dados.autorId) { campos.push(`autor_id = $${indice++}`); valores.push(dados.autorId); }
-
-    if (campos.length === 0) return null;
-
-    const query = `
-      UPDATE livros
-      SET ${campos.join(', ')}
-      WHERE id = $${indice}
-      RETURNING *;
-    `;
-    valores.push(id);
-
-    try {
-      const resultado = await pool?.query(query, valores);
-      if (resultado.rows.length === 0) return null;
-      return new Livro(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao atualizar livro: ${(erro as Error).message}`);
-    }
+  async atualizar(id: number, d: Partial<ILivro>): Promise<Livro | null> {
+    const c: string[] = []; const v: unknown[] = []; let i = 1;
+    if (d.titulo !== undefined)            { c.push(`titulo=$${i++}`);            v.push(d.titulo); }
+    if (d.genero !== undefined)            { c.push(`genero=$${i++}`);            v.push(d.genero); }
+    if (d.anoPublicacao !== undefined)     { c.push(`ano_publicacao=$${i++}`);    v.push(d.anoPublicacao); }
+    if (d.quantidadeEstoque !== undefined) { c.push(`quantidade_estoque=$${i++}`);v.push(d.quantidadeEstoque); }
+    if (d.autorId !== undefined)           { c.push(`autor_id=$${i++}`);          v.push(d.autorId); }
+    if (!c.length) return null;
+    v.push(id);
+    const r = await pool.query(`UPDATE livros SET ${c.join(',')} WHERE id=$${i} RETURNING *;`, v);
+    return r.rows[0] ? new Livro(r.rows[0]) : null;
   }
 
   async excluir(id: number): Promise<boolean> {
-    const query = `DELETE FROM livros WHERE id = $1;`;
-
-    try {
-      const resultado = await pool?.query(query, [id]);
-      return resultado.rowCount === 1;
-    } catch (erro) {
-      throw new Error(`Erro ao excluir livro: ${(erro as Error).message}`);
-    }
-  }
-
-  // Atualiza a quantidade após empréstimo/devolução
-  async alterarQuantidade(id: number, novaQuantidade: number): Promise<Livro | null> {
-    const query = `
-      UPDATE livros
-      SET quantidade_disponivel = $1
-      WHERE id = $2
-      RETURNING *;
-    `;
-
-    try {
-      const resultado = await pool?.query(query, [novaQuantidade, id]);
-      if (resultado.rows.length === 0) return null;
-      return new Livro(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao alterar quantidade: ${(erro as Error).message}`);
-    }
+    const r = await pool.query(`DELETE FROM livros WHERE id=$1`, [id]);
+    return r.rowCount === 1;
   }
 }

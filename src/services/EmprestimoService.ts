@@ -1,75 +1,36 @@
 import { EmprestimoRepository } from '../repositories/EmprestimoRepository';
 import { LivroService } from './LivroService';
-import { ClienteService } from './ClienteService';
+import { ClienteRepository } from '../repositories/ClienteRepository';
 import type { IEmprestimo } from '../interfaces/IEmprestimo';
-import { Emprestimo } from '../models/Emprestimo';
 
 export class EmprestimoService {
-  private repositorio = new EmprestimoRepository();
-  private servicoLivro = new LivroService();
-  private servicoCliente = new ClienteService();
+  private repo = new EmprestimoRepository();
+  private cli = new ClienteRepository();
+  private liv = new LivroService();
 
-  async realizarEmprestimo(dados: IEmprestimo): Promise<Emprestimo> {
-    if (!dados.livroId || !dados.clienteId) {
-      throw new Error("ID do livro e do cliente são obrigatórios");
-    }
-
-    const livro = await this.servicoLivro.buscarPorId(dados.livroId);
-    if (livro.quantidadeDisponivel <= 0) {
-      throw new Error("Livro indisponível para empréstimo");
-    }
-
-    await this.servicoCliente.buscarPorId(dados.clienteId);
-
-    const emprestimo = await this.repositorio.criar({
-      ...dados,
-      devolvido: false,
-      dataEmprestimo: dados.dataEmprestimo || new Date()
-    });
-
-    await this.servicoLivro.alterarEstoque(dados.livroId, -1);
-    return emprestimo;
+  async realizarEmprestimo(d: IEmprestimo) {
+    const c = await this.cli.buscarPorId(d.clienteId);
+    if (!c) throw new Error('Cliente não encontrado');
+    const l = await this.liv.buscarPorId(d.livroId);
+    if (!l) throw new Error('Livro não encontrado');
+    if (l.quantidadeEstoque <= 0) throw new Error('Sem estoque');
+    await this.liv.baixarEstoque(d.livroId);
+    return this.repo.criar(d);
   }
 
-  async registrarDevolucao(idEmprestimo: number): Promise<{ mensagem: string }> {
-    if (isNaN(idEmprestimo) || idEmprestimo <= 0) {
-      throw new Error("ID do empréstimo inválido");
-    }
-
-    const emprestimo = await this.repositorio.buscarPorId(idEmprestimo);
-    if (!emprestimo) throw new Error("Empréstimo não encontrado");
-    if (emprestimo.devolvido) throw new Error("Este empréstimo já foi devolvido");
-
-    await this.repositorio.registrarDevolucao(idEmprestimo, new Date());
-    await this.servicoLivro.alterarEstoque(emprestimo.livroId, +1);
-
-    return { mensagem: "Devolução registrada com sucesso! Estoque atualizado." };
+  async registrarDevolucao(id: number) {
+    const e = await this.repo.buscarPorId(id);
+    if (!e) throw new Error('Empréstimo não encontrado');
+    if (e.dataDevolucao) throw new Error('Já devolvido');
+    await this.liv.reporEstoque(e.livroId);
+    return this.repo.registrarDevolucao(id);
   }
 
-  async listarEmprestimos(): Promise<Emprestimo[]> {
-    const lista = await this.repositorio.listarTodos();
-    if (lista.length === 0) throw new Error("Nenhum empréstimo cadastrado");
-    return lista;
-  }
+  listarEmprestimos() { return this.repo.listarComDetalhes(); }
 
-  // Métodos para relatórios
-  async livrosDisponiveis() {
-    return this.repositorio.livrosDisponiveis();
-  }
-
-  async livrosEmprestados() {
-    return this.repositorio.livrosEmprestados();
-  }
-
-  async livrosPorAutor() {
-    return this.repositorio.livrosPorAutor();
-  }
-
-  async qtdEmprestimosPorLivro() {
-    return this.repositorio.qtdEmprestimosPorLivro();
-  }
-
-  async clientesComEmprestimosAtivos() {
-    return this.repositorio.clientesComEmprestimosAtivos();
-  }
+  livrosDisponiveis() { return this.repo.relatorioLivrosDisponiveis(); }
+  livrosEmprestados() { return this.repo.relatorioLivrosEmprestados(); }
+  livrosPorAutor() { return this.repo.relatorioLivrosPorAutor(); }
+  qtdEmprestimosPorLivro() { return this.repo.relatorioMaisEmprestados(); }
+  clientesComEmprestimosAtivos() { return this.repo.relatorioClientesAtivos(); }
 }

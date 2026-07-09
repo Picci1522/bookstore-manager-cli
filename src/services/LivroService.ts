@@ -1,68 +1,51 @@
 import { LivroRepository } from '../repositories/LivroRepository';
-import { AutorService } from './AutorService';
+import { AutorRepository } from '../repositories/AutorRepository';
 import type { ILivro } from '../interfaces/ILivro';
-import { Livro } from '../models/Livro';
 
 export class LivroService {
-  private repositorio = new LivroRepository();
-  private servicoAutor = new AutorService();
+  private repo = new LivroRepository();
+  private aut = new AutorRepository();
 
-  async cadastrar(dados: ILivro): Promise<Livro> {
-    if (!dados.titulo || dados.titulo.trim().length < 2) {
-      throw new Error("Título é obrigatório e deve ter pelo menos 2 caracteres");
-    }
-    if (!dados.autorId || isNaN(dados.autorId) || dados.autorId <= 0) {
-      throw new Error("ID do autor é obrigatório e deve ser válido");
-    }
-    if (dados.quantidadeDisponivel === undefined || dados.quantidadeDisponivel < 0) {
-      throw new Error("Quantidade disponível não pode ser negativa");
-    }
-
-    await this.servicoAutor.buscarPorId(dados.autorId);
-    return this.repositorio.criar(dados);
+  async cadastrar(d: ILivro) {
+    if (!d.titulo?.trim()) throw new Error('Título obrigatório');
+    if (!d.genero?.trim()) throw new Error('Gênero obrigatório');
+    if (d.quantidadeEstoque === undefined || d.quantidadeEstoque < 0) throw new Error('Estoque inválido');
+    const autor = await this.aut.buscarPorId(d.autorId);
+    if (!autor) throw new Error('Autor não encontrado');
+    return this.repo.criar(d);
   }
 
-  async listarTodos(): Promise<Livro[]> {
-    const lista = await this.repositorio.listarTodos();
-    if (lista.length === 0) throw new Error("Nenhum livro cadastrado");
-    return lista;
-  }
+  listarTodos() { return this.repo.listarTodos(); }
+  buscarPorId(id: number) { return this.repo.buscarPorId(id); }
 
-  async buscarPorId(id: number): Promise<Livro> {
-    if (isNaN(id) || id <= 0) throw new Error("ID inválido");
-    const livro = await this.repositorio.buscarPorId(id);
-    if (!livro) throw new Error("Livro não encontrado");
-    return livro;
-  }
-
-  async atualizar(id: number, dados: Partial<ILivro>): Promise<Livro> {
-    await this.buscarPorId(id);
-    if (dados.titulo && dados.titulo.trim().length < 2) {
-      throw new Error("Título deve ter pelo menos 2 caracteres");
+  async atualizar(id: number, d: Partial<ILivro>) {
+    const ex = await this.repo.buscarPorId(id);
+    if (!ex) throw new Error('Livro não encontrado');
+    if (d.autorId) {
+      const a = await this.aut.buscarPorId(d.autorId);
+      if (!a) throw new Error('Autor não encontrado');
     }
-    if (dados.autorId) await this.servicoAutor.buscarPorId(dados.autorId);
-    if (dados.quantidadeDisponivel !== undefined && dados.quantidadeDisponivel < 0) {
-      throw new Error("Quantidade não pode ser negativa");
-    }
-
-    const atualizado = await this.repositorio.atualizar(id, dados);
-    if (!atualizado) throw new Error("Não foi possível atualizar o livro");
-    return atualizado;
+    return this.repo.atualizar(id, d);
   }
 
-  async excluir(id: number): Promise<{ mensagem: string }> {
-    await this.buscarPorId(id);
-    const removido = await this.repositorio.excluir(id);
-    if (!removido) throw new Error("Não foi possível excluir");
-    return { mensagem: "Livro excluído com sucesso" };
+  async excluir(id: number) {
+    const ex = await this.repo.buscarPorId(id);
+    if (!ex) throw new Error('Livro não encontrado');
+    const ok = await this.repo.excluir(id);
+    if (!ok) throw new Error('Não foi possível excluir');
+    return ok;
   }
 
-  async alterarEstoque(id: number, quantidade: number): Promise<Livro> {
-    const livro = await this.buscarPorId(id);
-    const novaQtd = livro.quantidadeDisponivel + quantidade;
-    if (novaQtd < 0) throw new Error("Estoque insuficiente");
-    const atualizado = await this.repositorio.alterarQuantidade(id, novaQtd);
-    if (!atualizado) throw new Error("Erro ao atualizar estoque");
-    return atualizado;
+  async baixarEstoque(id: number, qtd = 1) {
+    const l = await this.repo.buscarPorId(id);
+    if (!l) throw new Error('Livro não encontrado');
+    if (l.quantidadeEstoque < qtd) throw new Error('Sem estoque');
+    return this.repo.atualizar(id, { quantidadeEstoque: l.quantidadeEstoque - qtd });
+  }
+
+  async reporEstoque(id: number, qtd = 1) {
+    const l = await this.repo.buscarPorId(id);
+    if (!l) throw new Error('Livro não encontrado');
+    return this.repo.atualizar(id, { quantidadeEstoque: l.quantidadeEstoque + qtd });
   }
 }

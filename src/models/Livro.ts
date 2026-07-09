@@ -1,5 +1,4 @@
 import type { ILivro } from '../interfaces/ILivro';
-
 export class Livro implements ILivro {
   id?: number;
   titulo: string;
@@ -8,14 +7,9 @@ export class Livro implements ILivro {
   quantidadeEstoque: number;
   autorId: number;
   nomeAutor?: string;
-
-  constructor(dados: ILivro) {
-    this.id = dados.id;
-    this.titulo = dados.titulo;
-    this.genero = dados.genero;
-    this.anoPublicacao = dados.anoPublicacao;
-    this.quantidadeEstoque = dados.quantidadeEstoque;
-    this.autorId = dados.autorId;
-    this.nomeAutor = dados.nomeAutor;
+  constructor(d: ILivro) {
+    this.id=d.id; this.titulo=d.titulo; this.genero=d.genero;
+    this.anoPublicacao=d.anoPublicacao; this.quantidadeEstoque=d.quantidadeEstoque;
+    this.autorId=d.autorId; this.nomeAutor=d.nomeAutor;
   }
 }

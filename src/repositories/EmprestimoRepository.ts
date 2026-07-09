@@ -3,169 +3,91 @@ import { Emprestimo } from '../models/Emprestimo';
 import type { IEmprestimo } from '../interfaces/IEmprestimo';
 
 export class EmprestimoRepository {
-
-  async criar(emprestimo: IEmprestimo): Promise<Emprestimo> {
-    const query = `
-      INSERT INTO emprestimos (livro_id, cliente_id, data_emprestimo, devolvido)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const valores = [
-      emprestimo.livroId,
-      emprestimo.clienteId,
-      emprestimo.dataEmprestimo || new Date(),
-      emprestimo.devolvido
-    ];
-
-    try {
-      const resultado = await pool?.query(query, valores);
-      return new Emprestimo(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao registrar empréstimo: ${(erro as Error).message}`);
-    }
+  async criar(d: IEmprestimo): Promise<Emprestimo> {
+    const q = `INSERT INTO emprestimos (cliente_id,livro_id,data_emprestimo,data_devolucao) VALUES ($1,$2,$3,$4) RETURNING id,cliente_id AS "clienteId",livro_id AS "livroId",data_emprestimo AS "dataEmprestimo",data_devolucao AS "dataDevolucao";`;
+    const v = [d.clienteId, d.livroId, d.dataEmprestimo ?? new Date(), d.dataDevolucao ?? null];
+    const r = await pool.query(q, v);
+    return new Emprestimo(r.rows[0]);
   }
 
-  async listarTodos(): Promise<Emprestimo[]> {
-    const query = `SELECT * FROM emprestimos ORDER BY data_emprestimo DESC;`;
-
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows.map((dado) => new Emprestimo(dado));
-    } catch (erro) {
-      throw new Error(`Erro ao listar empréstimos: ${(erro as Error).message}`);
-    }
+  async listarComDetalhes(): Promise<Emprestimo[]> {
+    const q = `SELECT e.id,e.cliente_id AS "clienteId",e.livro_id AS "livroId",e.data_emprestimo AS "dataEmprestimo",e.data_devolucao AS "dataDevolucao",c.nome AS "nomeCliente",l.titulo AS "tituloLivro" FROM emprestimos e JOIN clientes c ON c.id=e.cliente_id JOIN livros l ON l.id=e.livro_id ORDER BY e.id;`;
+    const r = await pool.query(q);
+    return r.rows.map(x => new Emprestimo(x));
   }
 
   async buscarPorId(id: number): Promise<Emprestimo | null> {
-    const query = `SELECT * FROM emprestimos WHERE id = $1;`;
-
-    try {
-      const resultado = await pool?.query(query, [id]);
-      if (resultado.rows.length === 0) return null;
-      return new Emprestimo(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao buscar empréstimo: ${(erro as Error).message}`);
-    }
+    const r = await pool.query(`SELECT * FROM emprestimos WHERE id=$1`, [id]);
+    return r.rows[0] ? new Emprestimo(r.rows[0]) : null;
   }
 
-  async registrarDevolucao(id: number, dataDevolucao: Date): Promise<Emprestimo | null> {
-    const query = `
-      UPDATE emprestimos
-      SET devolvido = true, data_devolucao = $1
-      WHERE id = $2 AND devolvido = false
-      RETURNING *;
-    `;
-
-    try {
-      const resultado = await pool?.query(query, [dataDevolucao, id]);
-      if (resultado.rows.length === 0) return null;
-      return new Emprestimo(resultado.rows[0]);
-    } catch (erro) {
-      throw new Error(`Erro ao registrar devolução: ${(erro as Error).message}`);
-    }
+  async registrarDevolucao(id: number): Promise<Emprestimo | null> {
+    const r = await pool.query(`UPDATE emprestimos SET data_devolucao=CURRENT_DATE WHERE id=$1 AND data_devolucao IS NULL RETURNING *;`, [id]);
+    return r.rows[0] ? new Emprestimo(r.rows[0]) : null;
   }
 
   // ------------------------------
-  // Métodos de Relatórios (RF18)
+  // RELATÓRIOS OBRIGATÓRIOS (RF18)
   // ------------------------------
 
-  // 1. Livros disponíveis para empréstimo
-  async livrosDisponiveis(): Promise<any[]> {
-    const query = `
-      SELECT id, titulo, ano_publicacao, quantidade_disponivel
+  /** Livros com quantidade em estoque maior que 0 */
+  async relatorioLivrosDisponiveis() {
+    const r = await pool.query(`
+      SELECT id, titulo, genero, quantidade_estoque AS "quantidadeEstoque"
       FROM livros
-      WHERE quantidade_disponivel > 0
+      WHERE quantidade_estoque > 0
       ORDER BY titulo;
-    `;
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows;
-    } catch (erro) {
-      throw new Error(`Erro ao consultar livros disponíveis: ${(erro as Error).message}`);
-    }
+    `);
+    return r.rows;
   }
 
-  // 2. Livros que estão emprestados no momento
-  async livrosEmprestados(): Promise<any[]> {
-    const query = `
-      SELECT
-        l.id AS livro_id,
-        l.titulo AS livro_titulo,
-        c.nome AS cliente_nome,
-        c.email AS cliente_email,
-        e.data_emprestimo
-      FROM emprestimos e
-      INNER JOIN livros l ON e.livro_id = l.id
-      INNER JOIN clientes c ON e.cliente_id = c.id
-      WHERE e.devolvido = false
-      ORDER BY e.data_emprestimo DESC;
-    `;
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows;
-    } catch (erro) {
-      throw new Error(`Erro ao consultar livros emprestados: ${(erro as Error).message}`);
-    }
+  /** Livros que estão atualmente emprestados */
+  async relatorioLivrosEmprestados() {
+    const r = await pool.query(`
+      SELECT l.id, l.titulo, COUNT(e.id) AS total_emprestimos
+      FROM livros l
+      INNER JOIN emprestimos e ON l.id = e.livro_id
+      WHERE e.data_devolucao IS NULL
+      GROUP BY l.id, l.titulo
+      ORDER BY total_emprestimos DESC;
+    `);
+    return r.rows;
   }
 
-  // 3. Quantidade de livros cadastrados por autor
-  async livrosPorAutor(): Promise<any[]> {
-    const query = `
-      SELECT
-        a.id AS autor_id,
-        a.nome AS autor_nome,
-        COUNT(l.id) AS total_livros
+  /** Quantidade de livros cadastrados por autor */
+  async relatorioLivrosPorAutor() {
+    const r = await pool.query(`
+      SELECT a.nome AS autor, COUNT(l.id) AS total_livros
       FROM autores a
       LEFT JOIN livros l ON a.id = l.autor_id
       GROUP BY a.id, a.nome
       ORDER BY a.nome;
-    `;
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows;
-    } catch (erro) {
-      throw new Error(`Erro ao consultar livros por autor: ${(erro as Error).message}`);
-    }
+    `);
+    return r.rows;
   }
 
-  // 4. Quantidade total de empréstimos por livro
-  async qtdEmprestimosPorLivro(): Promise<any[]> {
-    const query = `
-      SELECT
-        l.id AS livro_id,
-        l.titulo AS livro_titulo,
-        COUNT(e.id) AS total_emprestimos
+  /** Livros com maior número de empréstimos */
+  async relatorioMaisEmprestados() {
+    const r = await pool.query(`
+      SELECT l.titulo, COUNT(e.id) AS total_emprestimos
       FROM livros l
-      LEFT JOIN emprestimos e ON l.id = e.livro_id
+      INNER JOIN emprestimos e ON l.id = e.livro_id
       GROUP BY l.id, l.titulo
-      ORDER BY total_emprestimos DESC;
-    `;
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows;
-    } catch (erro) {
-      throw new Error(`Erro ao consultar quantidade de empréstimos por livro: ${(erro as Error).message}`);
-    }
+      ORDER BY total_emprestimos DESC
+      LIMIT 5;
+    `);
+    return r.rows;
   }
 
-  // 5. Clientes com empréstimos ainda não devolvidos
-  async clientesComEmprestimosAtivos(): Promise<any[]> {
-    const query = `
-      SELECT DISTINCT
-        c.id AS cliente_id,
-        c.nome AS cliente_nome,
-        c.email AS cliente_email,
-        c.telefone AS cliente_telefone
+  /** Clientes que possuem empréstimos ainda não devolvidos */
+  async relatorioClientesAtivos() {
+    const r = await pool.query(`
+      SELECT DISTINCT c.id, c.nome, c.email, c.telefone
       FROM clientes c
       INNER JOIN emprestimos e ON c.id = e.cliente_id
-      WHERE e.devolvido = false
+      WHERE e.data_devolucao IS NULL
       ORDER BY c.nome;
-    `;
-    try {
-      const resultado = await pool?.query(query);
-      return resultado.rows;
-    } catch (erro) {
-      throw new Error(`Erro ao consultar clientes com empréstimos ativos: ${(erro as Error).message}`);
-    }
+    `);
+    return r.rows;
   }
 }

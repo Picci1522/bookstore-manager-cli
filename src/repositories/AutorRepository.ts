@@ -12,7 +12,7 @@ export class AutorRepository {
     const valores = [autor.nome, autor.nacionalidade, autor.dataNascimento];
 
     try {
-      const resultado = await pool?.query(query, valores);
+      const resultado = await pool.query(query, valores);
       return new Autor(resultado.rows[0]);
     } catch (erro) {
       throw new Error(`Erro ao cadastrar autor: ${(erro as Error).message}`);
@@ -23,7 +23,7 @@ export class AutorRepository {
     const query = `SELECT * FROM autores ORDER BY nome;`;
 
     try {
-      const resultado = await pool?.query(query);
+      const resultado = await pool.query(query);
       return resultado.rows.map((dado) => new Autor(dado));
     } catch (erro) {
       throw new Error(`Erro ao listar autores: ${(erro as Error).message}`);
@@ -34,7 +34,7 @@ export class AutorRepository {
     const query = `SELECT * FROM autores WHERE id = $1;`;
 
     try {
-      const resultado = await pool?.query(query, [id]);
+      const resultado = await pool.query(query, [id]);
       if (resultado.rows.length === 0) return null;
       return new Autor(resultado.rows[0]);
     } catch (erro) {
@@ -47,9 +47,9 @@ export class AutorRepository {
     const valores: unknown[] = [];
     let indice = 1;
 
-    if (dados.nome) { campos.push(`nome = $${indice++}`); valores.push(dados.nome); }
-    if (dados.nacionalidade) { campos.push(`nacionalidade = $${indice++}`); valores.push(dados.nacionalidade); }
-    if (dados.dataNascimento) { campos.push(`data_nascimento = $${indice++}`); valores.push(dados.dataNascimento); }
+    if (dados.nome !== undefined) { campos.push(`nome = $${indice++}`); valores.push(dados.nome); }
+    if (dados.nacionalidade !== undefined) { campos.push(`nacionalidade = $${indice++}`); valores.push(dados.nacionalidade); }
+    if (dados.dataNascimento !== undefined) { campos.push(`data_nascimento = $${indice++}`); valores.push(dados.dataNascimento); }
 
     if (campos.length === 0) return null;
 
@@ -62,7 +62,7 @@ export class AutorRepository {
     valores.push(id);
 
     try {
-      const resultado = await pool?.query(query, valores);
+      const resultado = await pool.query(query, valores);
       if (resultado.rows.length === 0) return null;
       return new Autor(resultado.rows[0]);
     } catch (erro) {
@@ -74,7 +74,7 @@ export class AutorRepository {
     const query = `DELETE FROM autores WHERE id = $1;`;
 
     try {
-      const resultado = await pool?.query(query, [id]);
+      const resultado = await pool.query(query, [id]);
       return resultado.rowCount === 1;
     } catch (erro) {
       throw new Error(`Erro ao excluir autor: ${(erro as Error).message}`);

@@ -1,87 +1,56 @@
-import readlineSync from 'readline-sync';
+import * as rl from 'readline-sync';
 import { LivroService } from '../services/LivroService';
-import { AutorService } from '../services/AutorService';
 
 export class LivroController {
-  private servico = new LivroService();
+  private svc = new LivroService();
 
   async cadastrar() {
     try {
-      console.log("\n📖 Cadastrar Novo Livro");
-      const titulo = readlineSync.question("Título: ");
-      const ano = Number(readlineSync.question("Ano de publicação: "));
-      const qtd = Number(readlineSync.question("Quantidade disponível: "));
-      const idAutor = Number(readlineSync.question("ID do autor: "));
-
-      const livro = await this.servico.cadastrar({
-        titulo,
+      const titulo = rl.question('Titulo: ');
+      const genero = rl.question('Genero: ');
+      const ano = rl.questionInt('Ano publicacao (0=pular): ', { defaultInput: '0' });
+      const qtd = rl.questionInt('Quantidade estoque: ');
+      const autorId = rl.questionInt('ID Autor: ');
+      const l = await this.svc.cadastrar({
+        titulo, genero,
         anoPublicacao: ano || undefined,
-        quantidadeDisponivel: qtd,
-        autorId: idAutor
+        quantidadeEstoque: qtd, autorId,
       });
-
-      console.log(`✅ Livro cadastrado! ID: ${livro.id}`);
-    } catch (erro) {
-      console.log(`❌ ${(erro as Error).message}`);
-    }
+      console.log('✅ Cadastrado ID:', l.id);
+    } catch (e) { console.log('❌', (e as Error).message); }
   }
 
   async listarTodos() {
     try {
-      console.log("\n📚 Lista de Livros");
-      const lista = await this.servico.listarTodos();
-      lista.forEach(l => {
-        console.log(`ID: ${l.id} | Título: ${l.titulo} | Qtd: ${l.quantidadeDisponivel} | Autor ID: ${l.autorId}`);
-      });
-    } catch (erro) {
-      console.log(`ℹ️ ${(erro as Error).message}`);
-    }
+      const lista = await this.svc.listarTodos();
+      lista.forEach(l => console.log(`#${l.id} | ${l.titulo} | ${l.genero} | Estoque:${l.quantidadeEstoque} | Autor:${l.nomeAutor ?? l.autorId}`));
+    } catch (e) { console.log('❌', (e as Error).message); }
   }
 
   async buscarPorId() {
     try {
-      const id = Number(readlineSync.question("Digite o ID do livro: "));
-      const livro = await this.servico.buscarPorId(id);
-      console.log(`\n🔍 Livro encontrado:`);
-      console.log(`ID: ${livro.id}`);
-      console.log(`Título: ${livro.titulo}`);
-      console.log(`Ano: ${livro.anoPublicacao || 'Não informado'}`);
-      console.log(`Quantidade: ${livro.quantidadeDisponivel}`);
-      console.log(`ID do Autor: ${livro.autorId}`);
-    } catch (erro) {
-      console.log(`❌ ${(erro as Error).message}`);
-    }
+      const id = rl.questionInt('ID Livro: ');
+      const l = await this.svc.buscarPorId(id);
+      if (!l) return console.log('Não encontrado');
+      console.log(l);
+    } catch (e) { console.log('❌', (e as Error).message); }
   }
 
   async atualizar() {
     try {
-      const id = Number(readlineSync.question("Digite o ID do livro: "));
-      const novoTitulo = readlineSync.question("Novo título (vazio = manter): ");
-      const novoAno = readlineSync.question("Novo ano (vazio = manter): ");
-      const novaQtd = readlineSync.question("Nova quantidade (vazio = manter): ");
-      const novoAutor = readlineSync.question("Novo ID do autor (vazio = manter): ");
-
-      const dados = {
-        ...(novoTitulo && { titulo: novoTitulo }),
-        ...(novoAno && { anoPublicacao: Number(novoAno) }),
-        ...(novaQtd && { quantidadeDisponivel: Number(novaQtd) }),
-        ...(novoAutor && { autorId: Number(novoAutor) })
-      };
-
-      const atualizado = await this.servico.atualizar(id, dados);
-      console.log(`✅ Livro atualizado: ${atualizado.titulo}`);
-    } catch (erro) {
-      console.log(`❌ ${(erro as Error).message}`);
-    }
+      const id = rl.questionInt('ID Livro: ');
+      const titulo = rl.question('Novo titulo (vazio=pular): ');
+      const atualizado = await this.svc.atualizar(id, { titulo: titulo || undefined });
+      if (!atualizado) return console.log('Não alterado');
+      console.log('✅ Atualizado');
+    } catch (e) { console.log('❌', (e as Error).message); }
   }
 
   async excluir() {
     try {
-      const id = Number(readlineSync.question("Digite o ID do livro para excluir: "));
-      const resultado = await this.servico.excluir(id);
-      console.log(`✅ ${resultado.mensagem}`);
-    } catch (erro) {
-      console.log(`❌ ${(erro as Error).message}`);
-    }
+      const id = rl.questionInt('ID Livro: ');
+      await this.svc.excluir(id);
+      console.log('✅ Excluido');
+    } catch (e) { console.log('❌', (e as Error).message); }
   }
 }
